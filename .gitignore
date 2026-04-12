@@ -1,0 +1,13 @@
+build/
+third_party/
+release/
+*.obj
+*.pdb
+*.lib
+*.exp
+*.ilk
+*.log
+*.user
+*.VC.db
+*.VC.opendb
+aqtinstall.log

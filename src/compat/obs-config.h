@@ -1,0 +1,12 @@
+#pragma once
+
+#define LIBOBS_API_MAJOR_VER 32
+#define LIBOBS_API_MINOR_VER 0
+#define LIBOBS_API_PATCH_VER 4
+
+#define MAKE_SEMANTIC_VERSION(major, minor, patch) ((major << 24) | (minor << 16) | patch)
+#define LIBOBS_API_VER MAKE_SEMANTIC_VERSION(LIBOBS_API_MAJOR_VER, LIBOBS_API_MINOR_VER, LIBOBS_API_PATCH_VER)
+
+#include "obsconfig.h"
+
+#define OBS_INSTALL_DATA_PATH OBS_INSTALL_PREFIX "/" OBS_DATA_PATH
