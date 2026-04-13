@@ -47,6 +47,50 @@ The project expects:
 - Qt 6 Widgets
 - CMake 3.22 or newer
 
+### macOS
+
+On macOS, the plugin builds as an OBS `.plugin` bundle.
+
+The build can auto-detect locally vendored dependencies when they exist:
+
+- `third_party/obs-studio` for `libobs` headers
+- `third_party/Qt/<version>/macos` for Qt 6
+
+Otherwise, provide:
+
+- `libobs` headers, usually from an OBS source checkout or SDK-style export
+- a Qt 6 installation with CMake package files, or a `CMAKE_PREFIX_PATH` / `Qt6_DIR` that points at them
+
+Typical configure and build:
+
+```bash
+cmake -S . -B build \
+  -DOBS_INCLUDE_DIR=/path/to/obs-studio/libobs \
+  -DOBS_ROOT_INCLUDE_DIR=/path/to/obs-studio/libobs \
+  -DOBS_LIB_DIR=/Applications/OBS.app/Contents/Frameworks \
+  -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.x/macos
+
+cmake --build build
+```
+
+The resulting bundle is written to:
+
+- `build/obs-rgb-curves.plugin`
+
+To install it into your user plugin folder:
+
+```bash
+cmake --install build
+```
+
+This installs the bundle to:
+
+- `~/Library/Application Support/obs-studio/plugins`
+
+The post-build step also copies `rgb-curves.effect` into the bundle's `Contents/Resources/effects` folder so `obs_module_file()` can find it on macOS.
+
+### Windows
+
 If CMake does not find OBS automatically, set the environment variables before configuring:
 
 ```powershell
