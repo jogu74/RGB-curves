@@ -1,32 +1,53 @@
 # OBS RGB Curves
 
-Ett OBS-filter som exponerar fyra punktbaserade kurvor:
+`OBS RGB Curves` is an OBS filter plugin that lets you adjust image tone and color with point-based curves instead of sliders.
 
-- `Neutral`: påverkar luminans/ljusnivåer gemensamt.
-- `Red`, `Green`, `Blue`: justerar respektive färgkanal separat.
+It includes four editable curves:
 
-I stället för sliders öppnas en egen editor där du:
+- `Neutral`: adjusts overall luminance / light levels
+- `Red`
+- `Green`
+- `Blue`
 
-- klickar i grafen för att skapa punkter
-- drar punkter för att forma kurvan
-- dubbelklickar eller högerklickar för att ta bort en punkt
+## Features
 
-## Arkitektur
+- Point-based curve editing
+- Movable endpoint handles with flat edge plateaus
+- Separate neutral and RGB curves
+- Live effect updates in OBS while editing
+- Histogram overlay from the real source behind the filter
+- Channel-aware histogram view for Neutral / Red / Green / Blue
+- Live preview inside the editor
+- Saved curves with load, save, rename, delete, export and import
 
-- `src/rgb_curves_filter.*`: OBS-filter, inställningar och LUT-generering.
-- `src/curve_editor_dialog.*`: enkel Qt-dialog för kanalval.
-- `src/curve_widget.*`: interaktiv canvas för kurvredigering.
-- `data/effects/rgb-curves.effect`: shader som applicerar neutral kurva + RGB-kurvor.
+## How It Works
 
-## Bygga
+Instead of using sliders, the filter opens a dedicated curve editor where you can:
 
-Projektet förutsätter att du har:
+- click in the graph to add points
+- drag points to reshape the curve
+- double-click or right-click a point to remove it
 
-- OBS Studio SDK/libobs headers
+The neutral curve affects luminance, while the red, green and blue curves affect each color channel separately.
+
+## Project Structure
+
+- `src/rgb_curves_filter.*`: OBS filter integration, LUT generation, histogram capture and preview capture
+- `src/curve_editor_dialog.*`: Qt editor dialog and saved-curve management
+- `src/curve_widget.*`: interactive curve canvas
+- `src/curve_types.hpp`: curve math, interpolation and LUT helpers
+- `data/effects/rgb-curves.effect`: shader used by the filter
+- `scripts/package-release.ps1`: builds a release folder and zip package for Windows
+
+## Building
+
+The project expects:
+
+- OBS Studio SDK / `libobs` headers
 - Qt 6 Widgets
-- CMake 3.22+
+- CMake 3.22 or newer
 
-Sätt miljövariabler innan konfigurering om CMake inte hittar libobs automatiskt:
+If CMake does not find OBS automatically, set the environment variables before configuring:
 
 ```powershell
 $env:OBS_INCLUDE_DIR="C:\path\to\obs-studio\libobs"
@@ -35,10 +56,49 @@ cmake -S . -B build
 cmake --build build --config RelWithDebInfo
 ```
 
-Efter build kopieras shaderfilen till pluginens `data/obs-rgb-curves/effects/`-katalog.
+## Packaging
 
-## Nästa steg
+To create a Windows release package:
 
-- koppla in lokaliseringssträngar
-- lägga till presets/import/export
-- verifiera mot exakt OBS-SDK på maskinen och justera CMake-länkning vid behov
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
+```
+
+This creates:
+
+- a versioned release folder under `release\`
+- a versioned zip package ready to share or install
+
+## Runtime Requirements
+
+For normal use on Windows, the plugin does not require a separate Qt, CMake or OBS SDK installation.
+
+End users only need:
+
+- OBS Studio 32-bit? No, `OBS RGB Curves` is built for `64-bit OBS Studio on Windows`
+- permission to copy files into the OBS installation folder, or to run the included installer script as Administrator
+
+In practice, if OBS itself runs correctly on the machine, the plugin should not need any extra developer tools or SDKs.
+
+## Installation
+
+The packaged release includes:
+
+- `install.ps1`
+- `uninstall.ps1`
+- the correct OBS plugin folder structure
+
+Recommended install:
+
+1. Close OBS.
+2. Extract the release zip.
+3. Run `install.ps1` as Administrator.
+
+For manual installation, copy:
+
+- `obs-plugins\64bit\obs-rgb-curves.dll` to:
+  `C:\Program Files\obs-studio\obs-plugins\64bit\`
+- `data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect` to:
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-rgb-curves\effects\`
+
+If OBS is installed in a different location, copy the same files into the matching plugin and data folders for that installation.

@@ -99,6 +99,10 @@ Easy install:
 2. Run PowerShell as Administrator.
 3. Run .\install.ps1 from this folder.
 
+Requirements:
+- 64-bit OBS Studio on Windows
+- No separate Qt, CMake or OBS SDK install is required for normal use
+
 Easy uninstall:
 1. Close OBS.
 2. Run PowerShell as Administrator.
