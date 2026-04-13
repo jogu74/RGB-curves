@@ -1,6 +1,7 @@
 build/
 third_party/
 release/
+.DS_Store
 *.obj
 *.pdb
 *.lib

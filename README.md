@@ -113,6 +113,24 @@ This creates:
 - a versioned release folder under `release\`
 - a versioned zip package ready to share or install
 
+To create a macOS release package:
+
+```bash
+./scripts/package-release-mac.sh
+```
+
+This creates:
+
+- a versioned release folder under `release/`
+- a versioned zip package containing `obs-rgb-curves.plugin`
+- `install.sh` and `uninstall.sh` for user-level OBS installs on macOS
+
+For distribution, use separate zip files for Windows and macOS.
+
+- Windows and macOS need different binaries
+- the folder layout and installer scripts differ
+- a single combined zip is possible, but it is messier and easier for users to install incorrectly
+
 ## Runtime Requirements
 
 For normal use on Windows, the plugin does not require a separate Qt, CMake or OBS SDK installation.
