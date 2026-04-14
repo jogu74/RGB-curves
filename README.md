@@ -102,3 +102,9 @@ For manual installation, copy:
   `C:\Program Files\obs-studio\data\obs-plugins\rgb-curves\effects\`
 
 If OBS is installed in a different location, copy the same files into the matching plugin and data folders for that installation.
+
+## License
+
+`RGB Curves` is licensed under the GNU General Public License v3.0.
+
+See [LICENSE](LICENSE) for the full license text.
