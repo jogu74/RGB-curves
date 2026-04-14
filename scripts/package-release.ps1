@@ -9,7 +9,7 @@ if (-not $versionMatch.Success) {
   throw "Could not determine version from CMakeLists.txt"
 }
 $version = $versionMatch.Groups[1].Value
-$packageName = "obs-rgb-curves-windows-v$version"
+$packageName = "rgb-curves-windows-v$version"
 $packageRoot = Join-Path $releaseRoot $packageName
 $pluginDir = Join-Path $packageRoot "obs-plugins\64bit"
 $dataDir = Join-Path $packageRoot "data\obs-plugins\obs-rgb-curves\effects"
@@ -91,7 +91,7 @@ Write-Host "obs-rgb-curves removed from $obsRoot"
 '@ | Set-Content -LiteralPath $uninstallScriptPath -Encoding ASCII
 
 @'
-OBS RGB Curves
+RGB Curves
 
 Contents:
 - obs-plugins\64bit\obs-rgb-curves.dll

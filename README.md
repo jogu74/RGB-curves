@@ -1,6 +1,6 @@
-# OBS RGB Curves
+# RGB Curves
 
-`OBS RGB Curves` is an OBS filter plugin that lets you adjust image tone and color with point-based curves instead of sliders.
+`RGB Curves` is a filter plugin for OBS Studio that lets you adjust image tone and color with point-based curves instead of sliders.
 
 It includes four editable curves:
 
@@ -123,13 +123,15 @@ This creates:
 
 - a versioned release folder under `release/`
 - a versioned zip package containing `obs-rgb-curves.plugin`
-- `install.sh` and `uninstall.sh` for user-level OBS installs on macOS
+- `install.command` / `uninstall.command` for Finder-friendly installs on macOS
+- matching shell scripts for terminal-based installs
 
 For distribution, use separate zip files for Windows and macOS.
 
 - Windows and macOS need different binaries
 - the folder layout and installer scripts differ
 - a single combined zip is possible, but it is messier and easier for users to install incorrectly
+- the macOS installer clears the quarantine flag so Gatekeeper is less likely to mark the plugin bundle as damaged
 
 ## Runtime Requirements
 
@@ -137,7 +139,7 @@ For normal use on Windows, the plugin does not require a separate Qt, CMake or O
 
 End users only need:
 
-- OBS Studio 32-bit? No, `OBS RGB Curves` is built for `64-bit OBS Studio on Windows`
+- OBS Studio 32-bit? No, `RGB Curves` is built for `64-bit OBS Studio on Windows`
 - permission to copy files into the OBS installation folder, or to run the included installer script as Administrator
 
 In practice, if OBS itself runs correctly on the machine, the plugin should not need any extra developer tools or SDKs.

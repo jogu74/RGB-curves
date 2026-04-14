@@ -15,12 +15,14 @@ if [ -z "$VERSION" ]; then
 fi
 
 PLUGIN_BUNDLE="$BUILD_DIR/obs-rgb-curves.plugin"
-PACKAGE_NAME="obs-rgb-curves-macos-v$VERSION"
+PACKAGE_NAME="rgb-curves-macos-v$VERSION"
 PACKAGE_ROOT="$RELEASE_ROOT/$PACKAGE_NAME"
 ZIP_PATH="$RELEASE_ROOT/$PACKAGE_NAME.zip"
 PLUGIN_DEST="$PACKAGE_ROOT/obs-rgb-curves.plugin"
 INSTALL_SCRIPT="$PACKAGE_ROOT/install.sh"
+INSTALL_COMMAND="$PACKAGE_ROOT/install.command"
 UNINSTALL_SCRIPT="$PACKAGE_ROOT/uninstall.sh"
+UNINSTALL_COMMAND="$PACKAGE_ROOT/uninstall.command"
 README_PATH="$PACKAGE_ROOT/README.txt"
 
 if [ ! -d "$PLUGIN_BUNDLE" ]; then
@@ -50,7 +52,16 @@ fi
 
 mkdir -p "$OBS_PLUGIN_DIR"
 rm -rf "$TARGET_PLUGIN"
-cp -R "$SOURCE_PLUGIN" "$TARGET_PLUGIN"
+
+if command -v xattr >/dev/null 2>&1; then
+  xattr -dr com.apple.quarantine "$SOURCE_PLUGIN" 2>/dev/null || true
+fi
+
+/usr/bin/ditto "$SOURCE_PLUGIN" "$TARGET_PLUGIN"
+
+if command -v xattr >/dev/null 2>&1; then
+  xattr -dr com.apple.quarantine "$TARGET_PLUGIN" 2>/dev/null || true
+fi
 
 echo "Installed $PLUGIN_NAME to $OBS_PLUGIN_DIR"
 EOF
@@ -71,27 +82,36 @@ else
 fi
 EOF
 
-chmod +x "$INSTALL_SCRIPT" "$UNINSTALL_SCRIPT"
+cp "$INSTALL_SCRIPT" "$INSTALL_COMMAND"
+cp "$UNINSTALL_SCRIPT" "$UNINSTALL_COMMAND"
+
+chmod +x "$INSTALL_SCRIPT" "$INSTALL_COMMAND" "$UNINSTALL_SCRIPT" "$UNINSTALL_COMMAND"
 
 cat >"$README_PATH" <<EOF
-OBS RGB Curves for macOS
+RGB Curves for macOS
 
 Contents:
 - obs-rgb-curves.plugin
+- install.command
 - install.sh
+- uninstall.command
 - uninstall.sh
 
 Easy install:
 1. Close OBS.
-2. Run ./install.sh from this folder.
+2. Double-click install.command.
 3. Start OBS.
 
 This installs the plugin to:
 $HOME/Library/Application Support/obs-studio/plugins
 
+Notes:
+- Do not double-click obs-rgb-curves.plugin directly.
+- install.command removes the macOS quarantine flag if the zip was downloaded from the internet.
+
 Easy uninstall:
 1. Close OBS.
-2. Run ./uninstall.sh from this folder.
+2. Double-click uninstall.command.
 EOF
 
 rm -f "$ZIP_PATH"
