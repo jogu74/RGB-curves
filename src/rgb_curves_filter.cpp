@@ -151,7 +151,7 @@ void RGBCurvesFilter::load_effect()
   obs_leave_graphics();
 
   if (errors) {
-    blog(LOG_WARNING, "[obs-rgb-curves] Failed to load effect: %s", errors);
+    blog(LOG_WARNING, "[rgb-curves] Failed to load effect: %s", errors);
     bfree(errors);
   }
 }

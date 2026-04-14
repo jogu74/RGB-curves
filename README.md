@@ -1,6 +1,6 @@
-# OBS RGB Curves
+# RGB Curves
 
-`OBS RGB Curves` is an OBS filter plugin that lets you adjust image tone and color with point-based curves instead of sliders.
+`RGB Curves` is a filter plugin for OBS Studio that lets you adjust image tone and color with point-based curves instead of sliders.
 
 It includes four editable curves:
 
@@ -37,7 +37,7 @@ The neutral curve affects luminance, while the red, green and blue curves affect
 - `src/curve_widget.*`: interactive curve canvas
 - `src/curve_types.hpp`: curve math, interpolation and LUT helpers
 - `data/effects/rgb-curves.effect`: shader used by the filter
-- `scripts/package-release.ps1`: builds a release folder and zip package for Windows
+- `scripts/package-release.ps1`: builds a versioned release folder and zip package for Windows
 
 ## Building
 
@@ -75,7 +75,7 @@ For normal use on Windows, the plugin does not require a separate Qt, CMake or O
 
 End users only need:
 
-- OBS Studio 32-bit? No, `OBS RGB Curves` is built for `64-bit OBS Studio on Windows`
+- `64-bit OBS Studio on Windows`
 - permission to copy files into the OBS installation folder, or to run the included installer script as Administrator
 
 In practice, if OBS itself runs correctly on the machine, the plugin should not need any extra developer tools or SDKs.
@@ -96,9 +96,9 @@ Recommended install:
 
 For manual installation, copy:
 
-- `obs-plugins\64bit\obs-rgb-curves.dll` to:
+- `obs-plugins\64bit\rgb-curves.dll` to:
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
-- `data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect` to:
-  `C:\Program Files\obs-studio\data\obs-plugins\obs-rgb-curves\effects\`
+- `data\obs-plugins\rgb-curves\effects\rgb-curves.effect` to:
+  `C:\Program Files\obs-studio\data\obs-plugins\rgb-curves\effects\`
 
 If OBS is installed in a different location, copy the same files into the matching plugin and data folders for that installation.

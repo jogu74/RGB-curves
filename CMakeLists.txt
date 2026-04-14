@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(obs-rgb-curves VERSION 0.1.0 LANGUAGES CXX)
+project(rgb-curves VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -46,7 +46,7 @@ if(NOT LIBOBS_INCLUDE_DIR OR NOT LIBOBS_ROOT_INCLUDE_DIR OR NOT LIBOBS_LIBRARY)
     "Could not find libobs. Set OBS_INCLUDE_DIR, OBS_ROOT_INCLUDE_DIR and OBS_LIB_DIR to your OBS SDK/include and library paths.")
 endif()
 
-add_library(obs-rgb-curves MODULE
+add_library(rgb-curves MODULE
   src/plugin-main.cpp
   src/rgb_curves_filter.cpp
   src/rgb_curves_filter.hpp
@@ -57,39 +57,39 @@ add_library(obs-rgb-curves MODULE
   src/curve_types.hpp
 )
 
-target_include_directories(obs-rgb-curves PRIVATE
+target_include_directories(rgb-curves PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/compat
   ${LIBOBS_ROOT_INCLUDE_DIR}
   ${LIBOBS_INCLUDE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(obs-rgb-curves PRIVATE
+target_link_libraries(rgb-curves PRIVATE
   ${LIBOBS_LIBRARY}
   Qt6::Widgets
 )
 
-target_compile_definitions(obs-rgb-curves PRIVATE
+target_compile_definitions(rgb-curves PRIVATE
   NOMINMAX
   WIN32_LEAN_AND_MEAN
 )
 
 if(MSVC)
-  target_compile_options(obs-rgb-curves PRIVATE /W4 /permissive-)
+  target_compile_options(rgb-curves PRIVATE /W4 /permissive-)
 else()
-  target_compile_options(obs-rgb-curves PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(rgb-curves PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-set_target_properties(obs-rgb-curves PROPERTIES
+set_target_properties(rgb-curves PROPERTIES
   PREFIX ""
-  OUTPUT_NAME "obs-rgb-curves"
+  OUTPUT_NAME "rgb-curves"
 )
 
 if(OBS_RGB_CURVES_COPY_DATA)
-  add_custom_command(TARGET obs-rgb-curves POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:obs-rgb-curves>/data/obs-rgb-curves/effects"
+  add_custom_command(TARGET rgb-curves POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:rgb-curves>/data/rgb-curves/effects"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/rgb-curves.effect"
-      "$<TARGET_FILE_DIR:obs-rgb-curves>/data/obs-rgb-curves/effects/rgb-curves.effect"
+      "$<TARGET_FILE_DIR:rgb-curves>/data/rgb-curves/effects/rgb-curves.effect"
   )
 endif()

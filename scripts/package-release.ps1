@@ -3,12 +3,12 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $buildDir = Join-Path $projectRoot "build\RelWithDebInfo"
 $releaseRoot = Join-Path $projectRoot "release"
-$version = "0.1.0"
-$packageName = "obs-rgb-curves-windows-v$version"
+$version = "0.2.0"
+$packageName = "rgb-curves-windows-v$version"
 $packageRoot = Join-Path $releaseRoot $packageName
 $pluginDir = Join-Path $packageRoot "obs-plugins\64bit"
-$dataDir = Join-Path $packageRoot "data\obs-plugins\obs-rgb-curves\effects"
-$dllPath = Join-Path $buildDir "obs-rgb-curves.dll"
+$dataDir = Join-Path $packageRoot "data\obs-plugins\rgb-curves\effects"
+$dllPath = Join-Path $buildDir "rgb-curves.dll"
 $effectPath = Join-Path $projectRoot "data\effects\rgb-curves.effect"
 $installScriptPath = Join-Path $packageRoot "install.ps1"
 $uninstallScriptPath = Join-Path $packageRoot "uninstall.ps1"
@@ -30,7 +30,7 @@ if (Test-Path $packageRoot) {
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
-Copy-Item -LiteralPath $dllPath -Destination (Join-Path $pluginDir "obs-rgb-curves.dll") -Force
+Copy-Item -LiteralPath $dllPath -Destination (Join-Path $pluginDir "rgb-curves.dll") -Force
 Copy-Item -LiteralPath $effectPath -Destination (Join-Path $dataDir "rgb-curves.effect") -Force
 
 @'
@@ -39,35 +39,51 @@ $ErrorActionPreference = "Stop"
 $pluginRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $obsRoot = "C:\Program Files\obs-studio"
 $pluginDir = Join-Path $obsRoot "obs-plugins\64bit"
-$dataDir = Join-Path $obsRoot "data\obs-plugins\obs-rgb-curves\effects"
+$dataDir = Join-Path $obsRoot "data\obs-plugins\rgb-curves\effects"
+$legacyDataRoot = Join-Path $obsRoot "data\obs-plugins\obs-rgb-curves"
+$legacyPluginPath = Join-Path $pluginDir "obs-rgb-curves.dll"
 
 if (!(Test-Path $obsRoot)) {
   throw "OBS installation not found at $obsRoot"
 }
 
+if (Test-Path $legacyPluginPath) {
+  Remove-Item -LiteralPath $legacyPluginPath -Force
+}
+
+if (Test-Path $legacyDataRoot) {
+  Remove-Item -LiteralPath $legacyDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
-Copy-Item -LiteralPath (Join-Path $pluginRoot "obs-plugins\64bit\obs-rgb-curves.dll") `
-  -Destination (Join-Path $pluginDir "obs-rgb-curves.dll") -Force
+Copy-Item -LiteralPath (Join-Path $pluginRoot "obs-plugins\64bit\rgb-curves.dll") `
+  -Destination (Join-Path $pluginDir "rgb-curves.dll") -Force
 
-Copy-Item -LiteralPath (Join-Path $pluginRoot "data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect") `
+Copy-Item -LiteralPath (Join-Path $pluginRoot "data\obs-plugins\rgb-curves\effects\rgb-curves.effect") `
   -Destination (Join-Path $dataDir "rgb-curves.effect") -Force
 
-Write-Host "obs-rgb-curves installed to $obsRoot"
+Write-Host "rgb-curves installed to $obsRoot"
 '@ | Set-Content -LiteralPath $installScriptPath -Encoding ASCII
 
 @'
 $ErrorActionPreference = "Stop"
 
 $obsRoot = "C:\Program Files\obs-studio"
-$pluginPath = Join-Path $obsRoot "obs-plugins\64bit\obs-rgb-curves.dll"
-$effectPath = Join-Path $obsRoot "data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect"
+$pluginPath = Join-Path $obsRoot "obs-plugins\64bit\rgb-curves.dll"
+$legacyPluginPath = Join-Path $obsRoot "obs-plugins\64bit\obs-rgb-curves.dll"
+$effectPath = Join-Path $obsRoot "data\obs-plugins\rgb-curves\effects\rgb-curves.effect"
 $effectDir = Split-Path -Parent $effectPath
-$pluginDataRoot = Join-Path $obsRoot "data\obs-plugins\obs-rgb-curves"
+$pluginDataRoot = Join-Path $obsRoot "data\obs-plugins\rgb-curves"
+$legacyPluginDataRoot = Join-Path $obsRoot "data\obs-plugins\obs-rgb-curves"
 
 if (Test-Path $pluginPath) {
   Remove-Item -LiteralPath $pluginPath -Force
+}
+
+if (Test-Path $legacyPluginPath) {
+  Remove-Item -LiteralPath $legacyPluginPath -Force
 }
 
 if (Test-Path $effectPath) {
@@ -82,15 +98,19 @@ if (Test-Path $pluginDataRoot) {
   Remove-Item -LiteralPath $pluginDataRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host "obs-rgb-curves removed from $obsRoot"
+if (Test-Path $legacyPluginDataRoot) {
+  Remove-Item -LiteralPath $legacyPluginDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "rgb-curves removed from $obsRoot"
 '@ | Set-Content -LiteralPath $uninstallScriptPath -Encoding ASCII
 
 @'
-OBS RGB Curves
+RGB Curves
 
 Contents:
-- obs-plugins\64bit\obs-rgb-curves.dll
-- data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect
+- obs-plugins\64bit\rgb-curves.dll
+- data\obs-plugins\rgb-curves\effects\rgb-curves.effect
 - install.ps1
 - uninstall.ps1
 
@@ -109,10 +129,10 @@ Easy uninstall:
 3. Run .\uninstall.ps1 from this folder.
 
 Manual install:
-- Copy obs-plugins\64bit\obs-rgb-curves.dll to:
+- Copy obs-plugins\64bit\rgb-curves.dll to:
   C:\Program Files\obs-studio\obs-plugins\64bit\
-- Copy data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect to:
-  C:\Program Files\obs-studio\data\obs-plugins\obs-rgb-curves\effects\
+- Copy data\obs-plugins\rgb-curves\effects\rgb-curves.effect to:
+  C:\Program Files\obs-studio\data\obs-plugins\rgb-curves\effects\
 '@ | Set-Content -LiteralPath $readmePath -Encoding ASCII
 
 if (Test-Path $zipPath) {
