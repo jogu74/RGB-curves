@@ -8,21 +8,23 @@ BUILD_DIR="$PROJECT_ROOT/build"
 RELEASE_ROOT="$PROJECT_ROOT/release"
 CMAKE_FILE="$PROJECT_ROOT/CMakeLists.txt"
 
-VERSION=$(sed -n 's/.*project(obs-rgb-curves VERSION \([0-9][0-9.]*\) LANGUAGES CXX).*/\1/p' "$CMAKE_FILE")
+VERSION=$(sed -n 's/.*project(obs-colorforge VERSION \([0-9][0-9.]*\) LANGUAGES CXX).*/\1/p' "$CMAKE_FILE")
 if [ -z "$VERSION" ]; then
   echo "Could not determine version from CMakeLists.txt" >&2
   exit 1
 fi
 
-PLUGIN_BUNDLE="$BUILD_DIR/obs-rgb-curves.plugin"
-PACKAGE_NAME="rgb-curves-macos-v$VERSION"
+PLUGIN_BUNDLE="$BUILD_DIR/obs-colorforge.plugin"
+PACKAGE_NAME="colorforge-macos-v$VERSION"
 PACKAGE_ROOT="$RELEASE_ROOT/$PACKAGE_NAME"
 ZIP_PATH="$RELEASE_ROOT/$PACKAGE_NAME.zip"
-PLUGIN_DEST="$PACKAGE_ROOT/obs-rgb-curves.plugin"
+PLUGIN_DEST="$PACKAGE_ROOT/obs-colorforge.plugin"
+ICON_SOURCE="$PROJECT_ROOT/assets/icon/ColorForgeIcon.png"
+ICON_DEST="$PACKAGE_ROOT/ColorForgeIcon.png"
 INSTALL_SCRIPT="$PACKAGE_ROOT/install.sh"
-INSTALL_COMMAND="$PACKAGE_ROOT/install.command"
+INSTALL_COMMAND="$PACKAGE_ROOT/Install ColorForge.command"
 UNINSTALL_SCRIPT="$PACKAGE_ROOT/uninstall.sh"
-UNINSTALL_COMMAND="$PACKAGE_ROOT/uninstall.command"
+UNINSTALL_COMMAND="$PACKAGE_ROOT/Uninstall ColorForge.command"
 README_PATH="$PACKAGE_ROOT/README.txt"
 
 if [ ! -d "$PLUGIN_BUNDLE" ]; then
@@ -34,13 +36,17 @@ rm -rf "$PACKAGE_ROOT"
 mkdir -p "$PACKAGE_ROOT"
 cp -R "$PLUGIN_BUNDLE" "$PLUGIN_DEST"
 
+if [ -f "$ICON_SOURCE" ]; then
+  cp "$ICON_SOURCE" "$ICON_DEST"
+fi
+
 cat >"$INSTALL_SCRIPT" <<'EOF'
 #!/bin/sh
 
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-PLUGIN_NAME="obs-rgb-curves.plugin"
+PLUGIN_NAME="obs-colorforge.plugin"
 SOURCE_PLUGIN="$SCRIPT_DIR/$PLUGIN_NAME"
 OBS_PLUGIN_DIR="$HOME/Library/Application Support/obs-studio/plugins"
 TARGET_PLUGIN="$OBS_PLUGIN_DIR/$PLUGIN_NAME"
@@ -66,12 +72,25 @@ fi
 echo "Installed $PLUGIN_NAME to $OBS_PLUGIN_DIR"
 EOF
 
+cat >"$INSTALL_COMMAND" <<'EOF'
+#!/bin/sh
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+"$SCRIPT_DIR/install.sh"
+
+printf '\nColorForge installation completed. Press Enter to close...'
+read dummy
+EOF
+
 cat >"$UNINSTALL_SCRIPT" <<'EOF'
 #!/bin/sh
 
 set -eu
 
-PLUGIN_NAME="obs-rgb-curves.plugin"
+PLUGIN_NAME="obs-colorforge.plugin"
 TARGET_PLUGIN="$HOME/Library/Application Support/obs-studio/plugins/$PLUGIN_NAME"
 
 if [ -e "$TARGET_PLUGIN" ]; then
@@ -82,36 +101,48 @@ else
 fi
 EOF
 
-cp "$INSTALL_SCRIPT" "$INSTALL_COMMAND"
-cp "$UNINSTALL_SCRIPT" "$UNINSTALL_COMMAND"
+cat >"$UNINSTALL_COMMAND" <<'EOF'
+#!/bin/sh
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+"$SCRIPT_DIR/uninstall.sh"
+
+printf '\nColorForge uninstallation completed. Press Enter to close...'
+read dummy
+EOF
 
 chmod +x "$INSTALL_SCRIPT" "$INSTALL_COMMAND" "$UNINSTALL_SCRIPT" "$UNINSTALL_COMMAND"
 
 cat >"$README_PATH" <<EOF
-RGB Curves for macOS
+ColorForge for macOS
 
 Contents:
-- obs-rgb-curves.plugin
-- install.command
+- ColorForgeIcon.png
+- obs-colorforge.plugin
+- Install ColorForge.command
 - install.sh
-- uninstall.command
+- Uninstall ColorForge.command
 - uninstall.sh
 
 Easy install:
 1. Close OBS.
-2. Double-click install.command.
+2. Double-click Install ColorForge.command.
 3. Start OBS.
 
 This installs the plugin to:
 $HOME/Library/Application Support/obs-studio/plugins
 
 Notes:
-- Do not double-click obs-rgb-curves.plugin directly.
-- install.command removes the macOS quarantine flag if the zip was downloaded from the internet.
+- Do not double-click obs-colorforge.plugin directly.
+- Install ColorForge.command removes the macOS quarantine flag if the zip was downloaded from the internet.
+- The bundle currently contains RGB Curves, Hue Curves and Color Range Correction.
 
 Easy uninstall:
 1. Close OBS.
-2. Double-click uninstall.command.
+2. Double-click Uninstall ColorForge.command.
 EOF
 
 rm -f "$ZIP_PATH"

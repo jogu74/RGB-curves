@@ -1,0 +1,182 @@
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 texel_size;
+uniform int preview_mode;
+uniform float hue_min;
+uniform float hue_max;
+uniform float hue_softness;
+uniform float hue_full_range;
+uniform float sat_min;
+uniform float sat_max;
+uniform float sat_softness;
+uniform float luma_min;
+uniform float luma_max;
+uniform float luma_softness;
+uniform int invert_mask;
+uniform float temperature;
+uniform float tint;
+uniform float correction_saturation;
+uniform float correction_luma;
+uniform float blur_amount;
+
+sampler_state linear_clamp
+{
+	Filter = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData
+{
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData vert_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv = vert_in.uv;
+	return vert_out;
+}
+
+float3 rgb_to_hsv(float3 c)
+{
+	float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	float4 p = c.g < c.b ? float4(c.bg, K.wz) : float4(c.gb, K.xy);
+	float4 q = c.r < p.x ? float4(p.xyw, c.r) : float4(c.r, p.yzx);
+	float d = q.x - min(q.w, q.y);
+	float e = 1.0e-10;
+	return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 hsv_to_rgb(float3 c)
+{
+	float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+	return c.z * lerp(K.xxx, saturate(p - K.xxx), c.y);
+}
+
+float linear_range_mask(float value, float min_value, float max_value, float softness)
+{
+	if (min_value > max_value) {
+		float tmp = min_value;
+		min_value = max_value;
+		max_value = tmp;
+	}
+
+	if (value < min_value) {
+		if (softness <= 1.0e-5) {
+			return 0.0;
+		}
+		return smoothstep(min_value - softness, min_value, value);
+	}
+
+	if (value > max_value) {
+		if (softness <= 1.0e-5) {
+			return 0.0;
+		}
+		return 1.0 - smoothstep(max_value, max_value + softness, value);
+	}
+
+	return 1.0;
+}
+
+float hue_range_mask(float hue, float min_hue, float max_hue, float softness, float full_range)
+{
+	if (full_range > 0.5) {
+		return 1.0;
+	}
+
+	if (max_hue < min_hue) {
+		max_hue += 1.0;
+	}
+
+	float mask_prev = linear_range_mask(hue - 1.0, min_hue, max_hue, softness);
+	float mask_curr = linear_range_mask(hue, min_hue, max_hue, softness);
+	float mask_next = linear_range_mask(hue + 1.0, min_hue, max_hue, softness);
+	return max(mask_prev, max(mask_curr, mask_next));
+}
+
+float compute_mask_from_color(float4 color)
+{
+	float3 hsv = rgb_to_hsv(color.rgb);
+	float luma = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+	float hue_mask = hue_range_mask(hsv.x, hue_min, hue_max, hue_softness, hue_full_range);
+	float sat_mask = linear_range_mask(hsv.y, sat_min, sat_max, sat_softness);
+	float luma_mask = linear_range_mask(luma, luma_min, luma_max, luma_softness);
+	float mask = saturate(hue_mask * sat_mask * luma_mask);
+	if (invert_mask != 0) {
+		mask = 1.0 - mask;
+	}
+	return mask;
+}
+
+float compute_mask_at_uv(float2 uv)
+{
+	return compute_mask_from_color(image.Sample(linear_clamp, uv));
+}
+
+float compute_blurred_mask(float2 uv)
+{
+	float mask = compute_mask_at_uv(uv);
+	if (blur_amount <= 0.01) {
+		return mask;
+	}
+
+	float2 step = texel_size * blur_amount;
+	float blurred = 0.0;
+	blurred += compute_mask_at_uv(uv + step * float2(-1.0, -1.0)) * 1.0;
+	blurred += compute_mask_at_uv(uv + step * float2(0.0, -1.0)) * 2.0;
+	blurred += compute_mask_at_uv(uv + step * float2(1.0, -1.0)) * 1.0;
+	blurred += compute_mask_at_uv(uv + step * float2(-1.0, 0.0)) * 2.0;
+	blurred += mask * 4.0;
+	blurred += compute_mask_at_uv(uv + step * float2(1.0, 0.0)) * 2.0;
+	blurred += compute_mask_at_uv(uv + step * float2(-1.0, 1.0)) * 1.0;
+	blurred += compute_mask_at_uv(uv + step * float2(0.0, 1.0)) * 2.0;
+	blurred += compute_mask_at_uv(uv + step * float2(1.0, 1.0)) * 1.0;
+	return saturate(blurred / 16.0);
+}
+
+float3 apply_secondary_correction(float3 color_rgb)
+{
+	float3 hsv = rgb_to_hsv(saturate(color_rgb));
+	hsv.y = saturate(hsv.y * correction_saturation);
+	hsv.z = saturate(hsv.z * correction_luma);
+
+	float3 corrected = hsv_to_rgb(hsv);
+	float temp_amount = temperature * 0.35;
+	float tint_amount = tint * 0.30;
+
+	corrected *= float3(1.0 + temp_amount, 1.0, 1.0 - temp_amount);
+	corrected *= float3(1.0 + (tint_amount * 0.5), 1.0 - tint_amount, 1.0 + (tint_amount * 0.5));
+	return saturate(corrected);
+}
+
+float4 PSColorRangeCorrection(VertData vert_in) : TARGET
+{
+	float4 color = image.Sample(linear_clamp, vert_in.uv);
+	float mask = compute_blurred_mask(vert_in.uv);
+	float3 corrected = apply_secondary_correction(color.rgb);
+
+	if (preview_mode == 0) {
+		return float4(lerp(color.rgb, corrected, mask), color.a);
+	}
+
+	if (preview_mode == 1) {
+		return float4(mask, mask, mask, color.a);
+	}
+
+	color.rgb = lerp(float3(0.38, 0.38, 0.38), corrected, mask);
+	return color;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader = PSColorRangeCorrection(vert_in);
+	}
+}

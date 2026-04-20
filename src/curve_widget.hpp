@@ -12,12 +12,24 @@ class CurveWidget final : public QWidget {
   Q_OBJECT
 
 public:
+  enum class ColorMode {
+    Solid,
+    HueGradient,
+  };
+
+  enum class CurveBehavior {
+    Linear,
+    WrappedHue,
+  };
+
   explicit CurveWidget(QWidget *parent = nullptr);
 
   void set_curve(const rgb_curves::CurvePoints &curve);
   [[nodiscard]] rgb_curves::CurvePoints curve() const;
   void reset_curve();
   void set_histogram(const std::array<float, 256> &histogram);
+  void set_color_mode(ColorMode mode);
+  void set_curve_behavior(CurveBehavior behavior);
 
 signals:
   void curveChanged(const rgb_curves::CurvePoints &curve);
@@ -42,6 +54,8 @@ private:
 
   rgb_curves::CurvePoints curve_ = rgb_curves::default_curve();
   std::array<float, 256> histogram_ {};
+  ColorMode color_mode_ = ColorMode::Solid;
+  CurveBehavior curve_behavior_ = CurveBehavior::Linear;
   int active_index_ = -1;
   int hover_index_ = -1;
 };

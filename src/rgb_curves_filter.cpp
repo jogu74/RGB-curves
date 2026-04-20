@@ -8,7 +8,7 @@
 
 namespace {
 
-constexpr const char *kFilterId = "rgb_curves_filter";
+constexpr const char *kFilterId = "colorforge_rgb_curves_filter";
 constexpr const char *kCurveDataSetting = "curve_data";
 constexpr const char *kEditorButtonSetting = "open_editor";
 constexpr uint32_t kLutWidth = 256;
@@ -151,7 +151,7 @@ void RGBCurvesFilter::load_effect()
   obs_leave_graphics();
 
   if (errors) {
-    blog(LOG_WARNING, "[obs-rgb-curves] Failed to load effect: %s", errors);
+    blog(LOG_WARNING, "[obs-colorforge] Failed to load effect: %s", errors);
     bfree(errors);
   }
 }

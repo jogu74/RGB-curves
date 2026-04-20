@@ -1,6 +1,7 @@
 #include "curve_widget.hpp"
 
 #include <QLineF>
+#include <QLinearGradient>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
@@ -18,6 +19,23 @@ QColor curve_color()
   return QColor(232, 232, 232);
 }
 
+QColor hue_color_for_position(double normalized_x)
+{
+  const double hue = std::clamp(normalized_x, 0.0, 1.0);
+  return QColor::fromHsvF(hue, 0.9, 1.0);
+}
+
+QLinearGradient hue_gradient_for_rect(const QRectF &rect)
+{
+  QLinearGradient gradient(rect.left(), rect.center().y(), rect.right(), rect.center().y());
+  constexpr int kStops = 7;
+  for (int i = 0; i <= kStops; ++i) {
+    const double t = static_cast<double>(i) / static_cast<double>(kStops);
+    gradient.setColorAt(t, hue_color_for_position(t));
+  }
+  return gradient;
+}
+
 } // namespace
 
 CurveWidget::CurveWidget(QWidget *parent) : QWidget(parent)
@@ -28,7 +46,8 @@ CurveWidget::CurveWidget(QWidget *parent) : QWidget(parent)
 
 void CurveWidget::set_curve(const rgb_curves::CurvePoints &curve)
 {
-  curve_ = rgb_curves::sanitize_curve(curve);
+  curve_ = curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::sanitize_curve(curve)
+                                                        : rgb_curves::sanitize_curve(curve);
   active_index_ = -1;
   update();
 }
@@ -40,7 +59,7 @@ rgb_curves::CurvePoints CurveWidget::curve() const
 
 void CurveWidget::reset_curve()
 {
-  set_curve(rgb_curves::default_curve());
+  set_curve(curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::default_curve() : rgb_curves::default_curve());
   emit_curve_changed();
 }
 
@@ -48,6 +67,18 @@ void CurveWidget::set_histogram(const std::array<float, 256> &histogram)
 {
   histogram_ = histogram;
   update();
+}
+
+void CurveWidget::set_color_mode(ColorMode mode)
+{
+  color_mode_ = mode;
+  update();
+}
+
+void CurveWidget::set_curve_behavior(CurveBehavior behavior)
+{
+  curve_behavior_ = behavior;
+  set_curve(curve_);
 }
 
 QRectF CurveWidget::plot_rect() const
@@ -107,7 +138,7 @@ void CurveWidget::paintEvent(QPaintEvent *event)
   painter.setPen(QPen(QColor(62, 62, 62), 1.0));
   painter.drawLine(rect.bottomLeft(), rect.topRight());
 
-  if (!curve_.empty()) {
+  if (!curve_.empty() && curve_behavior_ == CurveBehavior::Linear) {
     const QPointF first = point_to_canvas(curve_.front());
     const QPointF last = point_to_canvas(curve_.back());
     painter.setPen(QPen(QColor(140, 140, 140, 160), 1.0, Qt::DotLine));
@@ -133,7 +164,8 @@ void CurveWidget::paintEvent(QPaintEvent *event)
   bool first = true;
   for (int i = 0; i <= 255; ++i) {
     const double x = static_cast<double>(i) / 255.0;
-    const double y = rgb_curves::sample_curve(curve_, x);
+    const double y = curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::sample_curve(curve_, x)
+                                                                  : rgb_curves::sample_curve(curve_, x);
     const QPointF p = point_to_canvas({x, y});
     if (first) {
       curve_path.moveTo(p);
@@ -143,13 +175,26 @@ void CurveWidget::paintEvent(QPaintEvent *event)
     }
   }
 
-  painter.setPen(QPen(curve_color(), 2.2));
+  QPen curve_pen;
+  curve_pen.setWidthF(2.2);
+  if (color_mode_ == ColorMode::HueGradient) {
+    curve_pen.setBrush(hue_gradient_for_rect(rect));
+  } else {
+    curve_pen.setColor(curve_color());
+  }
+  painter.setPen(curve_pen);
   painter.drawPath(curve_path);
 
   for (size_t index = 0; index < curve_.size(); ++index) {
     const QPointF p = point_to_canvas(curve_[index]);
     const bool highlighted = static_cast<int>(index) == active_index_ || static_cast<int>(index) == hover_index_;
-    painter.setBrush(highlighted ? QColor(255, 216, 96) : QColor(240, 240, 240));
+    if (highlighted) {
+      painter.setBrush(QColor(255, 216, 96));
+    } else if (color_mode_ == ColorMode::HueGradient) {
+      painter.setBrush(hue_color_for_position(curve_[index].x));
+    } else {
+      painter.setBrush(QColor(240, 240, 240));
+    }
     painter.setPen(QPen(QColor(18, 18, 18), 1.0));
     painter.drawEllipse(p, kHandleRadius, kHandleRadius);
   }
@@ -209,18 +254,24 @@ void CurveWidget::add_point_at(const QPointF &position)
   }
 
   curve_.push_back(canvas_to_point(position));
-  curve_ = rgb_curves::sanitize_curve(curve_);
+  curve_ = curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::sanitize_curve(curve_)
+                                                        : rgb_curves::sanitize_curve(curve_);
   emit_curve_changed();
 }
 
 void CurveWidget::remove_point_at(int index)
 {
-  if (index < 0 || index >= static_cast<int>(curve_.size()) || curve_.size() <= 2) {
+  if (index < 0 || index >= static_cast<int>(curve_.size())) {
+    return;
+  }
+
+  if (curve_behavior_ == CurveBehavior::Linear && curve_.size() <= 2) {
     return;
   }
 
   curve_.erase(curve_.begin() + index);
-  curve_ = rgb_curves::sanitize_curve(curve_);
+  curve_ = curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::sanitize_curve(curve_)
+                                                        : rgb_curves::sanitize_curve(curve_);
   emit_curve_changed();
   update();
 }
@@ -232,6 +283,33 @@ void CurveWidget::update_dragged_point(const QPointF &position)
   }
 
   auto point = canvas_to_point(position);
+
+  if (curve_behavior_ == CurveBehavior::WrappedHue) {
+    if (curve_.size() == 1) {
+      curve_[0] = point;
+      curve_ = hue_curves::sanitize_curve(curve_);
+      emit_curve_changed();
+      return;
+    }
+
+    if (active_index_ == 0) {
+      const double max_x = curve_[static_cast<size_t>(active_index_ + 1)].x - 0.001;
+      point.x = std::clamp(point.x, 0.0, max_x);
+    } else if (active_index_ == static_cast<int>(curve_.size()) - 1) {
+      const double min_x = curve_[static_cast<size_t>(active_index_ - 1)].x + 0.001;
+      point.x = std::clamp(point.x, min_x, 1.0);
+    } else {
+      const double min_x = curve_[static_cast<size_t>(active_index_ - 1)].x + 0.001;
+      const double max_x = curve_[static_cast<size_t>(active_index_ + 1)].x - 0.001;
+      point.x = std::clamp(point.x, min_x, max_x);
+    }
+
+    curve_[static_cast<size_t>(active_index_)] = point;
+    curve_ = hue_curves::sanitize_curve(curve_);
+    emit_curve_changed();
+    return;
+  }
+
   if (active_index_ == 0) {
     const double max_x = curve_[static_cast<size_t>(active_index_ + 1)].x - 0.001;
     point.x = std::clamp(point.x, 0.0, max_x);
@@ -245,7 +323,8 @@ void CurveWidget::update_dragged_point(const QPointF &position)
   }
 
   curve_[static_cast<size_t>(active_index_)] = point;
-  curve_ = rgb_curves::sanitize_curve(curve_);
+  curve_ = curve_behavior_ == CurveBehavior::WrappedHue ? hue_curves::sanitize_curve(curve_)
+                                                        : rgb_curves::sanitize_curve(curve_);
   emit_curve_changed();
 }
 

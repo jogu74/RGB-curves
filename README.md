@@ -1,15 +1,23 @@
-# RGB Curves
+# ColorForge
 
-`RGB Curves` is a filter plugin for OBS Studio that lets you adjust image tone and color with point-based curves instead of sliders.
+`ColorForge` is a color tools plugin for OBS Studio.
 
-It includes four editable curves:
+Today it includes:
+
+- `RGB Curves`
+- `Hue Curves`
+- `Color Range Correction`
+
+`RGB Curves` currently includes four editable curves:
 
 - `Neutral`: adjusts overall luminance / light levels
 - `Red`
 - `Green`
 - `Blue`
 
-## Features
+## Current Features
+
+`RGB Curves`
 
 - Point-based curve editing
 - Movable endpoint handles with flat edge plateaus
@@ -19,6 +27,19 @@ It includes four editable curves:
 - Channel-aware histogram view for Neutral / Red / Green / Blue
 - Live preview inside the editor
 - Saved curves with load, save, rename, delete, export and import
+
+`Hue Curves`
+
+- Hue vs Sat, Hue vs Hue and Hue vs Luma curves
+- Live hue-based grading through a dedicated OBS filter
+- Live editor preview and hue histogram
+- Separate preset storage and JSON import / export
+
+`Color Range Correction`
+
+- Hue, saturation and luma range keying
+- Soft-edge falloff on all three ranges
+- Preview modes for final image, matte and Color / Gray isolation
 
 ## How It Works
 
@@ -32,11 +53,15 @@ The neutral curve affects luminance, while the red, green and blue curves affect
 
 ## Project Structure
 
-- `src/rgb_curves_filter.*`: OBS filter integration, LUT generation, histogram capture and preview capture
+- `src/rgb_curves_filter.*`: OBS filter integration for `RGB Curves`
+- `src/hue_curves_filter.*`: OBS filter integration for `Hue Curves`
+- `src/color_range_correction_filter.*`: OBS filter integration for `Color Range Correction`
 - `src/curve_editor_dialog.*`: Qt editor dialog and saved-curve management
+- `src/hue_curve_editor_dialog.*`: Qt editor dialog for hue-driven curves
 - `src/curve_widget.*`: interactive curve canvas
-- `src/curve_types.hpp`: curve math, interpolation and LUT helpers
-- `data/effects/rgb-curves.effect`: shader used by the filter
+- `src/curve_types.hpp`: curve math, interpolation and LUT helpers for both filter families
+- `data/effects/*.effect`: shaders used by the filters
+- `docs/ROADMAP.md`: planned `ColorForge` filter suite direction
 - `scripts/package-release.ps1`: builds a release folder and zip package for Windows
 
 ## Building
@@ -75,7 +100,7 @@ cmake --build build
 
 The resulting bundle is written to:
 
-- `build/obs-rgb-curves.plugin`
+- `build/obs-colorforge.plugin`
 
 To install it into your user plugin folder:
 
@@ -87,7 +112,7 @@ This installs the bundle to:
 
 - `~/Library/Application Support/obs-studio/plugins`
 
-The post-build step also copies `rgb-curves.effect` into the bundle's `Contents/Resources/effects` folder so `obs_module_file()` can find it on macOS.
+The post-build step also copies the effect files into the bundle's `Contents/Resources/effects` folder so `obs_module_file()` can find them on macOS.
 
 ### Windows
 
@@ -122,9 +147,40 @@ To create a macOS release package:
 This creates:
 
 - a versioned release folder under `release/`
-- a versioned zip package containing `obs-rgb-curves.plugin`
-- `install.command` / `uninstall.command` for Finder-friendly installs on macOS
+- a versioned zip package containing `obs-colorforge.plugin`
+- `Install ColorForge.command` / `Uninstall ColorForge.command` for Finder-friendly installs on macOS
 - matching shell scripts for terminal-based installs
+- the bundled `ColorForgeIcon.png`
+
+To create a macOS installer package:
+
+```bash
+./scripts/package-installer-mac.sh
+```
+
+This creates:
+
+- a versioned installer package such as `release/colorforge-macos-installer-v0.3.0.pkg`
+- a staging folder under `release/` with the generated installer assets
+- generated `.icns` / `.ico` icon files from `assets/icon/ColorForgeIcon.png`
+
+By default the `.pkg` is unsigned. If you have an Apple installer certificate, set:
+
+```bash
+COLORFORGE_INSTALLER_SIGN_IDENTITY="Developer ID Installer: Your Name" ./scripts/package-installer-mac.sh
+```
+
+To create a Windows installer package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package-installer-windows.ps1
+```
+
+This creates:
+
+- a versioned Windows installer `.exe` in `release\`
+- a standard installer wizard with uninstall support
+- an installer branded with the `ColorForge` icon
 
 For distribution, use separate zip files for Windows and macOS.
 
@@ -139,7 +195,7 @@ For normal use on Windows, the plugin does not require a separate Qt, CMake or O
 
 End users only need:
 
-- OBS Studio 32-bit? No, `RGB Curves` is built for `64-bit OBS Studio on Windows`
+- OBS Studio 32-bit? No, `ColorForge` is built for `64-bit OBS Studio on Windows`
 - permission to copy files into the OBS installation folder, or to run the included installer script as Administrator
 
 In practice, if OBS itself runs correctly on the machine, the plugin should not need any extra developer tools or SDKs.
@@ -148,7 +204,10 @@ In practice, if OBS itself runs correctly on the machine, the plugin should not 
 
 The packaged release includes:
 
+- `ColorForgeIcon.png`
+- `Install ColorForge.bat`
 - `install.ps1`
+- `Uninstall ColorForge.bat`
 - `uninstall.ps1`
 - the correct OBS plugin folder structure
 
@@ -156,13 +215,18 @@ Recommended install:
 
 1. Close OBS.
 2. Extract the release zip.
-3. Run `install.ps1` as Administrator.
+3. Double-click `Install ColorForge.bat`.
+4. Approve the admin prompt if Windows asks.
 
 For manual installation, copy:
 
-- `obs-plugins\64bit\obs-rgb-curves.dll` to:
+- `obs-plugins\64bit\obs-colorforge.dll` to:
   `C:\Program Files\obs-studio\obs-plugins\64bit\`
-- `data\obs-plugins\obs-rgb-curves\effects\rgb-curves.effect` to:
-  `C:\Program Files\obs-studio\data\obs-plugins\obs-rgb-curves\effects\`
+- `data\obs-plugins\obs-colorforge\effects\rgb-curves.effect` to:
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-colorforge\effects\`
+- `data\obs-plugins\obs-colorforge\effects\hue-curves.effect` to:
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-colorforge\effects\`
+- `data\obs-plugins\obs-colorforge\effects\color-range-correction.effect` to:
+  `C:\Program Files\obs-studio\data\obs-plugins\obs-colorforge\effects\`
 
 If OBS is installed in a different location, copy the same files into the matching plugin and data folders for that installation.

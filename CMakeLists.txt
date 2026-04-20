@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(obs-rgb-curves VERSION 0.2.0 LANGUAGES CXX)
+project(obs-colorforge VERSION 0.3.0 LANGUAGES CXX)
+
+if(APPLE)
+  enable_language(OBJCXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,13 +13,14 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC OFF)
 set(CMAKE_AUTORCC OFF)
 
-option(OBS_RGB_CURVES_COPY_DATA "Copy effect files next to the built plugin" ON)
+option(OBS_COLORFORGE_COPY_DATA "Copy effect files next to the built plugin" ON)
 
 set(OBS_LOCAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/obs-studio")
 set(OBS_LOCAL_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/obs-sdk")
 set(QT_VERSION_HINT "6.8.3")
 set(QT_LOCAL_ROOT "")
 set(OBS_APP_FRAMEWORK_DIR "")
+set(COLORFORGE_ICON_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon/ColorForgeIcon.icns")
 
 if(WIN32)
   set(QT_LOCAL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/third_party/Qt/${QT_VERSION_HINT}/msvc2022_64")
@@ -94,18 +99,43 @@ if(EXISTS "${OBS_LOCAL_SOURCE_DIR}/deps/simde")
   list(APPEND OBS_EXTRA_INCLUDE_DIRS "${OBS_LOCAL_SOURCE_DIR}/deps/simde")
 endif()
 
-add_library(obs-rgb-curves MODULE
+add_library(obs-colorforge MODULE
   src/plugin-main.cpp
+  src/color_range_correction_filter.cpp
+  src/color_range_correction_filter.hpp
+  src/color_range_correction_editor_dialog.cpp
+  src/color_range_correction_editor_dialog.hpp
+  src/color_range_correction_types.hpp
+  src/screen_color_picker.hpp
   src/rgb_curves_filter.cpp
   src/rgb_curves_filter.hpp
+  src/hue_curves_filter.cpp
+  src/hue_curves_filter.hpp
   src/curve_editor_dialog.cpp
   src/curve_editor_dialog.hpp
+  src/hue_curve_editor_dialog.cpp
+  src/hue_curve_editor_dialog.hpp
   src/curve_widget.cpp
   src/curve_widget.hpp
   src/curve_types.hpp
 )
 
-target_include_directories(obs-rgb-curves PRIVATE
+if(APPLE AND EXISTS "${COLORFORGE_ICON_ICNS}")
+  target_sources(obs-colorforge PRIVATE "${COLORFORGE_ICON_ICNS}")
+  set_source_files_properties("${COLORFORGE_ICON_ICNS}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+endif()
+
+if(APPLE)
+  target_sources(obs-colorforge PRIVATE
+    src/screen_color_picker_mac.mm
+  )
+else()
+  target_sources(obs-colorforge PRIVATE
+    src/screen_color_picker_stub.cpp
+  )
+endif()
+
+target_include_directories(obs-colorforge PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src/compat
   ${LIBOBS_ROOT_INCLUDE_DIR}
   ${LIBOBS_INCLUDE_DIR}
@@ -113,71 +143,97 @@ target_include_directories(obs-rgb-curves PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(obs-rgb-curves PRIVATE
+target_link_libraries(obs-colorforge PRIVATE
   obs-libobs
   Qt6::Widgets
 )
 
+if(APPLE)
+  find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
+  target_link_libraries(obs-colorforge PRIVATE "${APPKIT_FRAMEWORK}")
+endif()
+
 if(WIN32)
-  target_compile_definitions(obs-rgb-curves PRIVATE
+  target_compile_definitions(obs-colorforge PRIVATE
     NOMINMAX
     WIN32_LEAN_AND_MEAN
   )
 endif()
 
 if(MSVC)
-  target_compile_options(obs-rgb-curves PRIVATE /W4 /permissive-)
+  target_compile_options(obs-colorforge PRIVATE /W4 /permissive-)
 else()
-  target_compile_options(obs-rgb-curves PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(obs-colorforge PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(APPLE AND EXISTS "${QT_LOCAL_ROOT}/lib")
   # Prefer the vendored Qt frameworks over the copies bundled inside OBS.app.
-  target_compile_options(obs-rgb-curves PRIVATE "-F${QT_LOCAL_ROOT}/lib")
-  target_link_options(obs-rgb-curves PRIVATE "-F${QT_LOCAL_ROOT}/lib")
+  target_compile_options(obs-colorforge PRIVATE "-F${QT_LOCAL_ROOT}/lib")
+  target_link_options(obs-colorforge PRIVATE "-F${QT_LOCAL_ROOT}/lib")
 endif()
 
-set_target_properties(obs-rgb-curves PROPERTIES
+set_target_properties(obs-colorforge PROPERTIES
   PREFIX ""
-  OUTPUT_NAME "obs-rgb-curves"
+  OUTPUT_NAME "obs-colorforge"
 )
 
 if(APPLE)
-  set_target_properties(obs-rgb-curves PROPERTIES
+  set_target_properties(obs-colorforge PROPERTIES
     BUNDLE TRUE
     BUNDLE_EXTENSION "plugin"
   )
+
+  if(EXISTS "${COLORFORGE_ICON_ICNS}")
+    set_target_properties(obs-colorforge PROPERTIES
+      MACOSX_BUNDLE_ICON_FILE "ColorForgeIcon.icns"
+    )
+  endif()
 endif()
 
-if(OBS_RGB_CURVES_COPY_DATA)
+if(OBS_COLORFORGE_COPY_DATA)
   if(APPLE)
-    add_custom_command(TARGET obs-rgb-curves POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:obs-rgb-curves>/Resources/effects"
+    add_custom_command(TARGET obs-colorforge POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:obs-colorforge>/Resources/effects"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/rgb-curves.effect"
-        "$<TARGET_BUNDLE_CONTENT_DIR:obs-rgb-curves>/Resources/effects/rgb-curves.effect"
+        "$<TARGET_BUNDLE_CONTENT_DIR:obs-colorforge>/Resources/effects/rgb-curves.effect"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/hue-curves.effect"
+        "$<TARGET_BUNDLE_CONTENT_DIR:obs-colorforge>/Resources/effects/hue-curves.effect"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/color-range-correction.effect"
+        "$<TARGET_BUNDLE_CONTENT_DIR:obs-colorforge>/Resources/effects/color-range-correction.effect"
     )
   else()
-    add_custom_command(TARGET obs-rgb-curves POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:obs-rgb-curves>/data/obs-rgb-curves/effects"
+    add_custom_command(TARGET obs-colorforge POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:obs-colorforge>/data/obs-colorforge/effects"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/rgb-curves.effect"
-        "$<TARGET_FILE_DIR:obs-rgb-curves>/data/obs-rgb-curves/effects/rgb-curves.effect"
+        "$<TARGET_FILE_DIR:obs-colorforge>/data/obs-colorforge/effects/rgb-curves.effect"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/hue-curves.effect"
+        "$<TARGET_FILE_DIR:obs-colorforge>/data/obs-colorforge/effects/hue-curves.effect"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/color-range-correction.effect"
+        "$<TARGET_FILE_DIR:obs-colorforge>/data/obs-colorforge/effects/color-range-correction.effect"
     )
   endif()
 endif()
 
 if(APPLE)
   set(OBS_MAC_PLUGIN_INSTALL_DIR "$ENV{HOME}/Library/Application Support/obs-studio/plugins")
-  install(TARGETS obs-rgb-curves
+  install(TARGETS obs-colorforge
     LIBRARY DESTINATION "${OBS_MAC_PLUGIN_INSTALL_DIR}"
   )
 else()
-  install(TARGETS obs-rgb-curves
+  install(TARGETS obs-colorforge
     LIBRARY DESTINATION obs-plugins/64bit
     RUNTIME DESTINATION obs-plugins/64bit
   )
-  install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/rgb-curves.effect"
-    DESTINATION data/obs-plugins/obs-rgb-curves/effects
+  install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/rgb-curves.effect"
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/hue-curves.effect"
+    "${CMAKE_CURRENT_SOURCE_DIR}/data/effects/color-range-correction.effect"
+    DESTINATION data/obs-plugins/obs-colorforge/effects
   )
 endif()
