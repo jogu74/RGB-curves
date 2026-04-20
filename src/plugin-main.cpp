@@ -9,7 +9,7 @@ OBS_MODULE_USE_DEFAULT_LOCALE("obs-colorforge", "en-US")
 
 MODULE_EXPORT const char *obs_module_description(void)
 {
-  return "ColorForge for OBS Studio. Currently includes RGB Curves, Hue Curves and Color Range Correction.";
+  return "ColorForge for OBS Studio. A multi-filter color toolkit with RGB Curves, Hue Curves and Color Range Correction.";
 }
 
 bool obs_module_load(void)

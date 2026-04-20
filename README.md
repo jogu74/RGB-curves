@@ -1,12 +1,14 @@
 # ColorForge
 
-`ColorForge` is a color tools plugin for OBS Studio.
+`ColorForge` is a multi-filter color toolkit for OBS Studio.
 
 Today it includes:
 
 - `RGB Curves`
 - `Hue Curves`
 - `Color Range Correction`
+
+On macOS, `Color Range Correction` includes a screen color picker for sampling a key color directly from the desktop.
 
 `RGB Curves` currently includes four editable curves:
 
@@ -40,6 +42,7 @@ Today it includes:
 - Hue, saturation and luma range keying
 - Soft-edge falloff on all three ranges
 - Preview modes for final image, matte and Color / Gray isolation
+- Screen color picker on macOS
 
 ## How It Works
 
@@ -137,6 +140,7 @@ This creates:
 
 - a versioned release folder under `release\`
 - a versioned zip package ready to share or install
+- a packaged Windows release for all three ColorForge filters
 
 To create a macOS release package:
 
@@ -181,6 +185,7 @@ This creates:
 - a versioned Windows installer `.exe` in `release\`
 - a standard installer wizard with uninstall support
 - an installer branded with the `ColorForge` icon
+- upgrade cleanup for older standalone `RGB Curves` installs
 
 For distribution, use separate zip files for Windows and macOS.
 
@@ -202,7 +207,7 @@ In practice, if OBS itself runs correctly on the machine, the plugin should not 
 
 ## Installation
 
-The packaged release includes:
+The packaged Windows release includes:
 
 - `ColorForgeIcon.png`
 - `Install ColorForge.bat`
@@ -210,6 +215,10 @@ The packaged release includes:
 - `Uninstall ColorForge.bat`
 - `uninstall.ps1`
 - the correct OBS plugin folder structure
+- all three ColorForge filters in one plugin package
+
+Windows note:
+- The screen color picker is currently disabled on Windows.
 
 Recommended install:
 
@@ -230,3 +239,5 @@ For manual installation, copy:
   `C:\Program Files\obs-studio\data\obs-plugins\obs-colorforge\effects\`
 
 If OBS is installed in a different location, copy the same files into the matching plugin and data folders for that installation.
+
+If you are upgrading from the older standalone `RGB Curves` plugin, the Windows installer and packaged install scripts now remove the legacy files during installation.

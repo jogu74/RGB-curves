@@ -512,21 +512,20 @@ ColorRangeCorrectionEditorDialog::ColorRangeCorrectionEditorDialog(const ColorRa
   set_color_row->setSpacing(10);
   set_color_row->addWidget(make_row_label("Set Color", this));
 
-  screen_pick_button_ = new QPushButton("Pick Screen Color", this);
-  screen_pick_button_->setObjectName("pickColorButton");
-  screen_pick_button_->setEnabled(colorforge::is_screen_color_picker_supported());
-  screen_pick_button_->setToolTip(colorforge::is_screen_color_picker_supported()
-                                    ? "Pick a color from anywhere on the screen"
-                                    : "Screen-wide color picking is not available on this platform");
-  connect(screen_pick_button_, &QPushButton::clicked, this, &ColorRangeCorrectionEditorDialog::begin_screen_color_pick);
-  set_color_row->addWidget(screen_pick_button_);
+  if (colorforge::is_screen_color_picker_supported()) {
+    screen_pick_button_ = new QPushButton("Pick Screen Color", this);
+    screen_pick_button_->setObjectName("pickColorButton");
+    screen_pick_button_->setToolTip("Pick a color from anywhere on the screen");
+    connect(screen_pick_button_, &QPushButton::clicked, this, &ColorRangeCorrectionEditorDialog::begin_screen_color_pick);
+    set_color_row->addWidget(screen_pick_button_);
 
-  picked_color_chip_ = new QLabel(this);
-  picked_color_chip_->setObjectName("pickedColorChip");
-  picked_color_chip_->setFixedSize(18, 18);
-  picked_color_chip_->setToolTip("Last picked color");
-  set_color_row->addWidget(picked_color_chip_);
-  update_picked_color_chip(QColor("#7f7f7f"));
+    picked_color_chip_ = new QLabel(this);
+    picked_color_chip_->setObjectName("pickedColorChip");
+    picked_color_chip_->setFixedSize(18, 18);
+    picked_color_chip_->setToolTip("Last picked color");
+    set_color_row->addWidget(picked_color_chip_);
+    update_picked_color_chip(QColor("#7f7f7f"));
+  }
 
   const std::array<std::pair<QColor, int>, 7> swatches = {{
     {QColor("#981b1e"), 0},

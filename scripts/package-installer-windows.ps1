@@ -6,7 +6,6 @@ $releaseRoot = Join-Path $projectRoot "release"
 $issPath = Join-Path $projectRoot "installer\windows\ColorForge.iss"
 $iconPng = Join-Path $projectRoot "assets\icon\ColorForgeIcon.png"
 $iconIco = Join-Path $projectRoot "assets\icon\ColorForgeIcon.ico"
-$iconIcns = Join-Path $projectRoot "assets\icon\ColorForgeIcon.icns"
 $cmakeText = Get-Content -LiteralPath (Join-Path $projectRoot "CMakeLists.txt") -Raw
 $versionMatch = [regex]::Match($cmakeText, 'project\(obs-colorforge VERSION ([0-9]+\.[0-9]+\.[0-9]+)')
 if (-not $versionMatch.Success) {
@@ -31,14 +30,23 @@ if (-not $python) {
   throw "Python is required to generate the installer icons"
 }
 
-& $python (Join-Path $projectRoot "scripts\generate-release-icons.py") $iconPng --icns $iconIcns --ico $iconIco
+& $python (Join-Path $projectRoot "scripts\generate-release-icons.py") $iconPng --ico $iconIco
 
 $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
 if (-not $iscc) {
+  $userCandidates = @()
+  if ($env:LOCALAPPDATA) {
+    $userCandidates += (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe")
+  }
+  if ($env:USERPROFILE) {
+    $userCandidates += (Join-Path $env:USERPROFILE "AppData\Local\Programs\Inno Setup 6\ISCC.exe")
+  }
+
   $commonCandidates = @(
-    "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+    $userCandidates
+    "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
     "C:\Program Files\Inno Setup 6\ISCC.exe"
-  )
+  ) | Select-Object -Unique
 
   foreach ($candidate in $commonCandidates) {
     if (Test-Path $candidate) {

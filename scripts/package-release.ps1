@@ -69,6 +69,29 @@ function Test-Administrator {
   return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Remove-LegacyRgbCurves([string]$ResolvedObsRoot) {
+  $legacyPluginPaths = @(
+    (Join-Path $ResolvedObsRoot "obs-plugins\64bit\rgb-curves.dll"),
+    (Join-Path $ResolvedObsRoot "obs-plugins\64bit\obs-rgb-curves.dll")
+  )
+  $legacyDataRoots = @(
+    (Join-Path $ResolvedObsRoot "data\obs-plugins\rgb-curves"),
+    (Join-Path $ResolvedObsRoot "data\obs-plugins\obs-rgb-curves")
+  )
+
+  foreach ($path in $legacyPluginPaths) {
+    if (Test-Path $path) {
+      Remove-Item -LiteralPath $path -Force
+    }
+  }
+
+  foreach ($path in $legacyDataRoots) {
+    if (Test-Path $path) {
+      Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Resolve-ObsRoot([string]$OverridePath) {
   $candidates = @()
 
@@ -80,8 +103,8 @@ function Resolve-ObsRoot([string]$OverridePath) {
     $candidates += (Join-Path $env:ProgramFiles "obs-studio")
   }
 
-  if ($env:ProgramFiles -and $env:ProgramFiles -ne $env:'ProgramFiles(x86)' -and $env:'ProgramFiles(x86)') {
-    $candidates += (Join-Path $env:'ProgramFiles(x86)' "obs-studio")
+  if ($env:ProgramFiles -and $env:ProgramFiles -ne ${env:ProgramFiles(x86)} -and ${env:ProgramFiles(x86)}) {
+    $candidates += (Join-Path ${env:ProgramFiles(x86)} "obs-studio")
   }
 
   foreach ($candidate in $candidates | Select-Object -Unique) {
@@ -107,6 +130,8 @@ $pluginRoot = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $My
 $obsRoot = Resolve-ObsRoot $ObsRoot
 $pluginDir = Join-Path $obsRoot "obs-plugins\64bit"
 $dataDir = Join-Path $obsRoot "data\obs-plugins\obs-colorforge\effects"
+
+Remove-LegacyRgbCurves $obsRoot
 
 New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
@@ -139,6 +164,29 @@ function Test-Administrator {
   return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Remove-LegacyRgbCurves([string]$ResolvedObsRoot) {
+  $legacyPluginPaths = @(
+    (Join-Path $ResolvedObsRoot "obs-plugins\64bit\rgb-curves.dll"),
+    (Join-Path $ResolvedObsRoot "obs-plugins\64bit\obs-rgb-curves.dll")
+  )
+  $legacyDataRoots = @(
+    (Join-Path $ResolvedObsRoot "data\obs-plugins\rgb-curves"),
+    (Join-Path $ResolvedObsRoot "data\obs-plugins\obs-rgb-curves")
+  )
+
+  foreach ($path in $legacyPluginPaths) {
+    if (Test-Path $path) {
+      Remove-Item -LiteralPath $path -Force
+    }
+  }
+
+  foreach ($path in $legacyDataRoots) {
+    if (Test-Path $path) {
+      Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 function Resolve-ObsRoot([string]$OverridePath) {
   $candidates = @()
 
@@ -150,8 +198,8 @@ function Resolve-ObsRoot([string]$OverridePath) {
     $candidates += (Join-Path $env:ProgramFiles "obs-studio")
   }
 
-  if ($env:ProgramFiles -and $env:ProgramFiles -ne $env:'ProgramFiles(x86)' -and $env:'ProgramFiles(x86)') {
-    $candidates += (Join-Path $env:'ProgramFiles(x86)' "obs-studio")
+  if ($env:ProgramFiles -and $env:ProgramFiles -ne ${env:ProgramFiles(x86)} -and ${env:ProgramFiles(x86)}) {
+    $candidates += (Join-Path ${env:ProgramFiles(x86)} "obs-studio")
   }
 
   foreach ($candidate in $candidates | Select-Object -Unique) {
@@ -205,6 +253,8 @@ if (Test-Path $pluginDataRoot) {
   Remove-Item -LiteralPath $pluginDataRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+Remove-LegacyRgbCurves $obsRoot
+
 Write-Host "ColorForge removed from $obsRoot"
 '@ | Set-Content -LiteralPath $uninstallScriptPath -Encoding ASCII
 
@@ -225,6 +275,13 @@ pause
 @'
 ColorForge
 
+ColorForge is a multi-filter color toolkit for OBS Studio.
+
+Included in this Windows package:
+- RGB Curves
+- Hue Curves
+- Color Range Correction
+
 Contents:
 - ColorForgeIcon.png
 - obs-plugins\64bit\obs-colorforge.dll
@@ -240,6 +297,12 @@ Easy install:
 1. Close OBS.
 2. Double-click Install ColorForge.bat.
 3. Approve the admin prompt if Windows asks.
+
+Upgrade note:
+- Older standalone RGB Curves plugin files are removed automatically during install.
+
+Windows note:
+- The screen color picker is currently disabled on Windows.
 
 Requirements:
 - 64-bit OBS Studio on Windows

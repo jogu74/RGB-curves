@@ -47,8 +47,18 @@ Source: "{#MyProjectDir}\data\effects\color-range-correction.effect"; DestDir: "
 Source: "{#MyProjectDir}\assets\icon\ColorForgeIcon.png"; DestDir: "{app}\data\obs-plugins\obs-colorforge"; Flags: ignoreversion
 Source: "{#MyProjectDir}\assets\icon\ColorForgeIcon.ico"; DestDir: "{app}\data\obs-plugins\obs-colorforge"; Flags: ignoreversion
 
+[InstallDelete]
+Type: files; Name: "{app}\obs-plugins\64bit\rgb-curves.dll"
+Type: files; Name: "{app}\obs-plugins\64bit\obs-rgb-curves.dll"
+Type: filesandordirs; Name: "{app}\data\obs-plugins\rgb-curves"
+Type: filesandordirs; Name: "{app}\data\obs-plugins\obs-rgb-curves"
+
 [Run]
 Filename: "{app}\bin\64bit\obs64.exe"; Description: "Launch OBS Studio"; Flags: nowait postinstall skipifsilent unchecked
+
+[UninstallDelete]
+Type: files; Name: "{app}\obs-plugins\64bit\obs-colorforge.dll"
+Type: filesandordirs; Name: "{app}\data\obs-plugins\obs-colorforge"
 
 [Code]
 function IsObsFolder(Path: string): Boolean;
